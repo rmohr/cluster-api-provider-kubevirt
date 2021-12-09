@@ -1,0 +1,23 @@
+on: [pull_request]
+name: e2e
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          repository: kubevirt/project-infra
+          path: project-infra
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: kubeconfig
+        run: 'echo -e "$KUBECONFIG" > ~/.tmpfile.json'
+        shell: bash
+        env:
+          KUBECONFIG: ${{secrets.KUBECONFIG}}
+      - uses: azure/setup-kubectl@v1
+      - name: Test
+        run: |
+          $GITHUB_WORKSPACE/project-infra/hack/mkpj.sh --job pull-kubernetes-sigs-cluster-api-provider-kubevirt-e2e --pull-number ${{github.event.number}} | kubectl apply --kubeconfig ~/.tmpfile.json -f -
